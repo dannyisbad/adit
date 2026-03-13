@@ -399,6 +399,18 @@ app.MapGet(
             return;
         }
 
+        if (!IsTrustedWebSocketOrigin(context, daemonOptions.ListenUri))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(
+                new
+                {
+                    error = "Untrusted WebSocket origin."
+                },
+                cancellationToken);
+            return;
+        }
+
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
         await WriteWebSocketAsync(
             socket,
@@ -998,6 +1010,51 @@ static string BuildWebSocketUrl(string listenUrl)
     return builder.Uri.ToString();
 }
 
+static bool IsTrustedWebSocketOrigin(HttpContext context, Uri listenUri)
+{
+    if (!context.Request.Headers.TryGetValue("Origin", out var originValues) || originValues.Count == 0)
+    {
+        return true;
+    }
+
+    if (originValues.Count != 1 || !Uri.TryCreate(originValues[0], UriKind.Absolute, out var origin))
+    {
+        return false;
+    }
+
+    var expectedScheme = listenUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+        ? Uri.UriSchemeHttps
+        : Uri.UriSchemeHttp;
+    if (!origin.Scheme.Equals(expectedScheme, StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    return IsLoopbackHost(origin.Host) && origin.Port == ResolveTrustedWebSocketOriginPort(context, listenUri);
+}
+
+static int ResolveTrustedWebSocketOriginPort(HttpContext context, Uri listenUri)
+{
+    if (listenUri.Port != 0)
+    {
+        return listenUri.Port;
+    }
+
+    if (context.Connection.LocalPort > 0)
+    {
+        return context.Connection.LocalPort;
+    }
+
+    if (context.Request.Host.Port is int requestPort && requestPort > 0)
+    {
+        return requestPort;
+    }
+
+    return listenUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+        ? 443
+        : 80;
+}
+
 static void ConfigureLoopbackBinding(KestrelServerOptions options, Uri listenUri)
 {
     if (listenUri.Port == 0)
@@ -1031,6 +1088,12 @@ static IPAddress ResolveLoopbackAddress(string host)
     return IPAddress.TryParse(host, out var address) && address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
         ? IPAddress.IPv6Loopback
         : IPAddress.Loopback;
+}
+
+static bool IsLoopbackHost(string host)
+{
+    return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+        || (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address));
 }
 
 static string NormalizeHostedPath(string path)

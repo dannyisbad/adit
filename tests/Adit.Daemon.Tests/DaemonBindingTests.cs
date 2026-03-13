@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using System.Net;
 
 namespace Adit.Daemon.Tests;
@@ -21,6 +22,49 @@ public sealed class DaemonBindingTests
 
         using var response = await client.GetAsync("/v1/info");
         response.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task KestrelHost_WithPortZero_AllowsSameOriginWebSocketUpgrade()
+    {
+        using var url = new EnvironmentVariableScope("ADIT_URL", "http://127.0.0.1:0");
+        using var factory = new DaemonApiTestFactory();
+        factory.UseKestrel();
+
+        using var client = factory.CreateClient();
+        Assert.NotNull(client.BaseAddress);
+
+        using var socket = new ClientWebSocket();
+        socket.Options.SetRequestHeader("Origin", BuildOrigin(client.BaseAddress!));
+
+        await socket.ConnectAsync(BuildWebSocketUri(client.BaseAddress!), CancellationToken.None);
+
+        Assert.Equal(WebSocketState.Open, socket.State);
+
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+    }
+
+    private static Uri BuildWebSocketUri(Uri baseAddress)
+    {
+        var builder = new UriBuilder(baseAddress)
+        {
+            Scheme = string.Equals(baseAddress.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                ? "wss"
+                : "ws",
+            Path = "/v1/ws",
+            Query = string.Empty
+        };
+        return builder.Uri;
+    }
+
+    private static string BuildOrigin(Uri baseAddress)
+    {
+        var builder = new UriBuilder(baseAddress)
+        {
+            Path = string.Empty,
+            Query = string.Empty
+        };
+        return builder.Uri.ToString().TrimEnd('/');
     }
 
     private static bool IsLoopbackHost(string host)

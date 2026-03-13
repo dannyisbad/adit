@@ -193,6 +193,18 @@ public sealed class DaemonApiTests : IClassFixture<DaemonApiTestFactory>
     }
 
     [Fact]
+    public async Task WebSocket_WithMismatchedOrigin_IsRejected()
+    {
+        var client = factory.Server.CreateWebSocketClient();
+        client.ConfigureRequest = request => request.Headers.Origin = "http://evil.example";
+
+        var exception = await Assert.ThrowsAsync<WebSocketException>(
+            () => client.ConnectAsync(new Uri("ws://localhost/v1/ws"), CancellationToken.None));
+
+        Assert.Contains("403", exception.Message);
+    }
+
+    [Fact]
     public async Task SearchContacts_ReturnsSeededContact()
     {
         var response = await client.GetAsync("/v1/contacts/search?query=mom");
