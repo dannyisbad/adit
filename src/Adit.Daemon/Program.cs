@@ -1030,7 +1030,29 @@ static bool IsTrustedWebSocketOrigin(HttpContext context, Uri listenUri)
         return false;
     }
 
-    return IsLoopbackHost(origin.Host) && origin.Port == listenUri.Port;
+    return IsLoopbackHost(origin.Host) && origin.Port == ResolveTrustedWebSocketOriginPort(context, listenUri);
+}
+
+static int ResolveTrustedWebSocketOriginPort(HttpContext context, Uri listenUri)
+{
+    if (listenUri.Port != 0)
+    {
+        return listenUri.Port;
+    }
+
+    if (context.Connection.LocalPort > 0)
+    {
+        return context.Connection.LocalPort;
+    }
+
+    if (context.Request.Host.Port is int requestPort && requestPort > 0)
+    {
+        return requestPort;
+    }
+
+    return listenUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+        ? 443
+        : 80;
 }
 
 static void ConfigureLoopbackBinding(KestrelServerOptions options, Uri listenUri)
