@@ -1,0 +1,16 @@
+{
+  "name": "adit-js",
+  "version": "1.0.0",
+  "description": "JavaScript client for the local Adit daemon HTTP API.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ]
+}
