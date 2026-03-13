@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { DaemonEventRecord } from "./types";
+import { getDaemonAuthToken } from "./auth";
 
 type EventHandler = (event: DaemonEventRecord) => void;
 
@@ -81,10 +82,14 @@ class WebSocketManager {
     if (this.socket) return;
 
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${proto}//${location.host}/v1/ws`;
+    const url = new URL(`${proto}//${location.host}/v1/ws`);
+    const authToken = getDaemonAuthToken();
+    if (authToken) {
+      url.searchParams.set("access_token", authToken);
+    }
 
     try {
-      this.socket = new WebSocket(url);
+      this.socket = new WebSocket(url.toString());
     } catch {
       this.scheduleReconnect();
       return;
@@ -182,9 +187,12 @@ export function useEvent(type: string, handler: EventHandler) {
  * React hook: acquire the WebSocket on mount, release on unmount.
  * Safe under StrictMode — the ref-counted singleton survives mount/unmount/remount.
  */
-export function useWsConnection() {
+export function useWsConnection(enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     manager.acquire();
     return () => manager.release();
-  }, []);
+  }, [enabled]);
 }

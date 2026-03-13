@@ -9,6 +9,7 @@ Prefer the checked-in project surfaces over hand-edited Claude config:
 
 - `.mcp.json` wires Claude Code to `./sdk/mcp-server/server.js`
 - `.claude/agents/adit-operator.md` gives Claude a dedicated Adit operator
+- If the daemon uses `ADIT_AUTH_TOKEN`, prefer passing that through the project `.mcp.json` env instead of hard-coding it into prompts or requests.
 
 When the user asks to "set this up", fix setup, or recover Adit:
 

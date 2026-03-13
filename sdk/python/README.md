@@ -7,6 +7,7 @@ Zero-dependency Python client for the local `Adit.Daemon` HTTP API.
 - Python `3.9+`
 - A running daemon, defaulting to `http://127.0.0.1:5037`
 - Optional `ADIT_URL` env var if the daemon is not on the default port
+- Optional `ADIT_AUTH_TOKEN` env var if the daemon has bearer-token auth enabled
 
 ## Install
 
@@ -27,9 +28,14 @@ In the current v1 posture, the supported setup flow is one-time `Link to Windows
 ## Usage
 
 ```python
+import os
+
 from adit import AditClient
 
-client = AditClient(base_url="http://127.0.0.1:5037")
+client = AditClient(
+    base_url="http://127.0.0.1:5037",
+    auth_token=os.environ.get("ADIT_AUTH_TOKEN"),
+)
 
 setup_guide = client.get_setup_guide()
 setup_check = client.check_setup()
@@ -61,6 +67,8 @@ client.trigger_sync("manual")
 events = client.get_recent_events()
 ws_url = client.websocket_url()
 ```
+
+When `auth_token` is set, HTTP requests send `Authorization: Bearer <token>` automatically and `websocket_url()` appends `?access_token=...`.
 
 ## API
 

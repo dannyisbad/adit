@@ -6,7 +6,8 @@
         "./sdk/mcp-server/server.js"
       ],
       "env": {
-        "ADIT_URL": "${ADIT_URL:-http://127.0.0.1:5037}"
+        "ADIT_URL": "${ADIT_URL:-http://127.0.0.1:5037}",
+        "ADIT_AUTH_TOKEN": "${ADIT_AUTH_TOKEN:-}"
       }
     }
   }

@@ -13,6 +13,7 @@ import type {
   NotificationsResponse,
   ThreadChooserStatusSnapshot,
 } from "./types";
+import { getDaemonAuthToken } from "./auth";
 
 class ApiError extends Error {
   constructor(
@@ -25,7 +26,9 @@ class ApiError extends Error {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path);
+  const res = await fetch(path, {
+    headers: buildHeaders(),
+  });
   if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
   return res.json() as Promise<T>;
 }
@@ -33,11 +36,21 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers: buildHeaders(body !== undefined),
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
   return res.json() as Promise<T>;
+}
+
+function buildHeaders(hasJsonBody = false): HeadersInit | undefined {
+  const headers: Record<string, string> = {};
+  if (hasJsonBody) headers["Content-Type"] = "application/json";
+
+  const authToken = getDaemonAuthToken();
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+
+  return Object.keys(headers).length > 0 ? headers : undefined;
 }
 
 export const api = {
@@ -114,3 +127,6 @@ export const api = {
 };
 
 export { ApiError };
+export function isUnauthorizedError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 401;
+}

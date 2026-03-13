@@ -14,7 +14,7 @@ import type {
   SynthesizedMessageRecord,
   SupportedSetupSnapshot,
 } from "../lib/types";
-import { api } from "../lib/api";
+import { api, isUnauthorizedError } from "../lib/api";
 import { sortConversationsByLatest, sortMessagesChronologically } from "../lib/utils";
 import { useEvent, useWsConnection } from "../lib/ws";
 
@@ -27,6 +27,7 @@ export interface AppState {
   connectionStatus: "connecting" | "connected" | "disconnected";
   loading: boolean;
   error: string | null;
+  authRequired: boolean;
 }
 
 const initialState: AppState = {
@@ -38,6 +39,7 @@ const initialState: AppState = {
   connectionStatus: "connecting",
   loading: true,
   error: null,
+  authRequired: false,
 };
 
 type Action =
@@ -49,7 +51,8 @@ type Action =
   | { type: "REMOVE_ACTIVE_MESSAGE"; messageKey: string }
   | { type: "SET_CONNECTION_STATUS"; status: AppState["connectionStatus"] }
   | { type: "SET_LOADING"; loading: boolean }
-  | { type: "SET_ERROR"; error: string | null };
+  | { type: "SET_ERROR"; error: string | null }
+  | { type: "SET_AUTH_REQUIRED"; required: boolean };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -60,6 +63,7 @@ function reducer(state: AppState, action: Action): AppState {
         setup: action.setup,
         loading: false,
         error: null,
+        authRequired: false,
       };
     case "SET_CONVERSATIONS":
       return { ...state, conversations: sortConversationsByLatest(action.conversations) };
@@ -85,6 +89,13 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, loading: action.loading };
     case "SET_ERROR":
       return { ...state, error: action.error };
+    case "SET_AUTH_REQUIRED":
+      return {
+        ...state,
+        authRequired: action.required,
+        loading: false,
+        error: action.required ? "Bearer token required." : state.error,
+      };
   }
 }
 
@@ -108,7 +119,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const activeConversationRequestId = useRef(0);
 
-  useWsConnection();
+  useWsConnection(!state.loading && !state.authRequired);
+
+  const handleUnauthorized = useCallback((error: unknown) => {
+    if (isUnauthorizedError(error)) {
+      dispatch({ type: "SET_AUTH_REQUIRED", required: true });
+      dispatch({ type: "SET_ERROR", error: error.message });
+      return true;
+    }
+
+    return false;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +147,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         if (!cancelled) {
+          if (handleUnauthorized(err)) {
+            return;
+          }
+          dispatch({ type: "SET_AUTH_REQUIRED", required: false });
           dispatch({ type: "SET_ERROR", error: (err as Error).message });
           dispatch({ type: "SET_LOADING", loading: false });
         }
@@ -142,10 +167,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.listConversations(100);
       dispatch({ type: "SET_CONVERSATIONS", conversations: res.conversations });
-    } catch {
-      // silent
+      dispatch({ type: "SET_AUTH_REQUIRED", required: false });
+    } catch (err) {
+      handleUnauthorized(err);
     }
-  }, []);
+  }, [handleUnauthorized]);
+
+  const refreshCapabilities = useCallback(async () => {
+    try {
+      const cap = await api.getCapabilities();
+      dispatch({ type: "SET_RUNTIME", runtime: cap.runtime, setup: cap.setup });
+    } catch (err) {
+      handleUnauthorized(err);
+    }
+  }, [handleUnauthorized]);
 
   const refreshActiveConversation = useCallback(async () => {
     if (!state.activeConversationId) return;
@@ -159,13 +194,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       dispatch({ type: "SET_ACTIVE_MESSAGES", messages: res.messages });
       dispatch({ type: "SET_ERROR", error: null });
+      dispatch({ type: "SET_AUTH_REQUIRED", required: false });
     } catch (err) {
       if (activeConversationRequestId.current !== requestId) {
         return;
       }
+      if (handleUnauthorized(err)) {
+        return;
+      }
       dispatch({ type: "SET_ERROR", error: (err as Error).message });
     }
-  }, [state.activeConversationId]);
+  }, [handleUnauthorized, state.activeConversationId]);
 
   useEvent("ws.connected", () => {
     dispatch({ type: "SET_CONNECTION_STATUS", status: "connected" });
@@ -178,33 +217,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEvent("hello", (ev) => {
     const payload = ev.payload as { runtime?: DaemonRuntimeSnapshot } | undefined;
     if (payload?.runtime) {
-      api
-        .getCapabilities()
-        .then((cap) => {
-          dispatch({ type: "SET_RUNTIME", runtime: cap.runtime, setup: cap.setup });
-        })
-        .catch(() => {});
+      refreshCapabilities();
     }
   });
 
   useEvent("sync.completed", () => {
     refreshConversations();
     refreshActiveConversation();
-    api
-      .getCapabilities()
-      .then((cap) => {
-        dispatch({ type: "SET_RUNTIME", runtime: cap.runtime, setup: cap.setup });
-      })
-      .catch(() => {});
+    refreshCapabilities();
   });
 
   useEvent("runtime.updated", () => {
-    api
-      .getCapabilities()
-      .then((cap) => {
-        dispatch({ type: "SET_RUNTIME", runtime: cap.runtime, setup: cap.setup });
-      })
-      .catch(() => {});
+    refreshCapabilities();
   });
 
   useEvent("map.event", () => {
@@ -228,14 +252,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         dispatch({ type: "SET_ACTIVE_MESSAGES", messages: res.messages });
         dispatch({ type: "SET_ERROR", error: null });
+        dispatch({ type: "SET_AUTH_REQUIRED", required: false });
       })
       .catch((err) => {
         if (activeConversationRequestId.current !== requestId) {
           return;
         }
+        if (handleUnauthorized(err)) {
+          return;
+        }
         dispatch({ type: "SET_ERROR", error: (err as Error).message });
       });
-  }, []);
+  }, [handleUnauthorized]);
 
   return (
     <AppContext.Provider

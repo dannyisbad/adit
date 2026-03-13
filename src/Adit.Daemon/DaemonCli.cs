@@ -59,28 +59,28 @@ internal static class DaemonCli
                 await PrintDoctorAsync(options, cancellationToken);
                 return null;
             case "info":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/info", HttpMethod.Get, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/info", HttpMethod.Get, cancellationToken);
                 return null;
             case "status":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/status", HttpMethod.Get, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/status", HttpMethod.Get, cancellationToken);
                 return null;
             case "runtime":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/runtime", HttpMethod.Get, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/runtime", HttpMethod.Get, cancellationToken);
                 return null;
             case "capabilities":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/capabilities", HttpMethod.Get, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/capabilities", HttpMethod.Get, cancellationToken);
                 return null;
             case "sync":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/sync/now", HttpMethod.Post, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/sync/now", HttpMethod.Post, cancellationToken);
                 return null;
             case "notifications-check":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/notifications/check", HttpMethod.Post, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/notifications/check", HttpMethod.Post, cancellationToken);
                 return null;
             case "notifications-enable":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/notifications/enable", HttpMethod.Post, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/notifications/enable", HttpMethod.Post, cancellationToken);
                 return null;
             case "notifications-disable":
-                await PrintRemoteJsonAsync(options.ListenUrl, "/v1/notifications/disable", HttpMethod.Post, cancellationToken);
+                await PrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/notifications/disable", HttpMethod.Post, cancellationToken);
                 return null;
             default:
                 Console.Error.WriteLine($"Unknown adit daemon command: {command}");
@@ -118,7 +118,7 @@ internal static class DaemonCli
 
     private static async Task PrintDoctorAsync(DaemonOptions options, CancellationToken cancellationToken)
     {
-        if (await TryPrintRemoteJsonAsync(options.ListenUrl, "/v1/doctor", HttpMethod.Get, cancellationToken))
+        if (await TryPrintRemoteJsonAsync(options.ListenUrl, options.AuthToken, "/v1/doctor", HttpMethod.Get, cancellationToken))
         {
             return;
         }
@@ -222,11 +222,12 @@ internal static class DaemonCli
 
     private static async Task PrintRemoteJsonAsync(
         string baseUrl,
+        string? authToken,
         string path,
         HttpMethod method,
         CancellationToken cancellationToken)
     {
-        if (!await TryPrintRemoteJsonAsync(baseUrl, path, method, cancellationToken))
+        if (!await TryPrintRemoteJsonAsync(baseUrl, authToken, path, method, cancellationToken))
         {
             Console.Error.WriteLine($"Adit daemon is not reachable at {baseUrl}. Start it with `serve` first.");
             Environment.ExitCode = 1;
@@ -235,6 +236,7 @@ internal static class DaemonCli
 
     private static async Task<bool> TryPrintRemoteJsonAsync(
         string baseUrl,
+        string? authToken,
         string path,
         HttpMethod method,
         CancellationToken cancellationToken)
@@ -247,6 +249,10 @@ internal static class DaemonCli
         try
         {
             using var request = new HttpRequestMessage(method, new Uri(new Uri(EnsureTrailingSlash(baseUrl)), path.TrimStart('/')));
+            if (!string.IsNullOrWhiteSpace(authToken))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authToken);
+            }
             using var response = await client.SendAsync(request, cancellationToken);
             var raw = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)

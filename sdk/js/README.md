@@ -7,6 +7,7 @@ Zero-dependency Node ESM client for the local `Adit.Daemon` HTTP API.
 - Node `18+`
 - A running daemon, defaulting to `http://127.0.0.1:5037`
 - Optional `ADIT_URL` env var if the daemon is not on the default port
+- Optional `ADIT_AUTH_TOKEN` env var if the daemon has bearer-token auth enabled
 
 ## Install
 
@@ -30,7 +31,8 @@ In the current v1 posture, the supported setup flow is one-time `Link to Windows
 import { AditClient } from "adit-js";
 
 const client = new AditClient({
-  baseUrl: "http://127.0.0.1:5037"
+  baseUrl: "http://127.0.0.1:5037",
+  authToken: process.env.ADIT_AUTH_TOKEN
 });
 
 const setupGuide = await client.getSetupGuide();
@@ -78,6 +80,8 @@ await client.triggerSync("manual");
 const events = await client.getRecentEvents();
 const wsUrl = client.getWebSocketUrl();
 ```
+
+When `authToken` is set, HTTP requests send `Authorization: Bearer <token>` automatically and `getWebSocketUrl()` appends `?access_token=...`.
 
 ## API
 

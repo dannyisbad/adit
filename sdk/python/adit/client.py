@@ -21,9 +21,15 @@ class AditError(Exception):
 
 
 class AditClient:
-    def __init__(self, base_url: str | None = None, timeout: float = 30.0) -> None:
+    def __init__(
+        self,
+        base_url: str | None = None,
+        timeout: float = 30.0,
+        auth_token: str | None = None,
+    ) -> None:
         self.base_url = (base_url or os.environ.get("ADIT_URL") or DEFAULT_BASE_URL).rstrip("/")
         self.timeout = timeout
+        self.auth_token = _normalize_optional_string(auth_token or os.environ.get("ADIT_AUTH_TOKEN"))
 
     def get_status(self) -> Any:
         return self._request("GET", "/v1/status")
@@ -219,7 +225,10 @@ class AditClient:
     def websocket_url(self) -> str:
         parsed = parse.urlsplit(self.base_url)
         scheme = "wss" if parsed.scheme == "https" else "ws"
-        return parse.urlunsplit((scheme, parsed.netloc, "/v1/ws", "", ""))
+        query = ""
+        if self.auth_token:
+            query = parse.urlencode({"access_token": self.auth_token})
+        return parse.urlunsplit((scheme, parsed.netloc, "/v1/ws", query, ""))
 
     def perform_notification_action(self, notification_uid: int, action: str) -> Any:
         if notification_uid <= 0:
@@ -328,6 +337,8 @@ class AditClient:
         if body is not None:
             data = json.dumps(body).encode("utf-8")
             headers["content-type"] = "application/json"
+        if self.auth_token:
+            headers["authorization"] = f"Bearer {self.auth_token}"
 
         req = request.Request(url, data=data, method=method, headers=headers)
 
@@ -346,8 +357,12 @@ class AditClient:
             raise AditError(f"Adit request failed: {exc.reason}") from exc
 
 
-def create_client(base_url: str | None = None, timeout: float = 30.0) -> AditClient:
-    return AditClient(base_url=base_url, timeout=timeout)
+def create_client(
+    base_url: str | None = None,
+    timeout: float = 30.0,
+    auth_token: str | None = None,
+) -> AditClient:
+    return AditClient(base_url=base_url, timeout=timeout, auth_token=auth_token)
 
 
 def _validate_message_target(
@@ -390,3 +405,11 @@ def _read_payload(raw: bytes) -> Any:
         return json.loads(text)
     except json.JSONDecodeError:
         return text
+
+
+def _normalize_optional_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    return normalized or None
