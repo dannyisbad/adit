@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adit-python"
+version = "1.0.0"
+description = "Python client for the local Adit daemon HTTP API."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name = "adit" }
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["adit*"]

@@ -1,0 +1,105 @@
+<Project>
+  <PropertyGroup>
+    <PhoneLinkDiscoveryPackageName Condition="'$(PhoneLinkDiscoveryPackageName)' == ''">Microsoft.YourPhone</PhoneLinkDiscoveryPackageName>
+    <PhoneLinkDiscoveryProbeDll Condition="'$(PhoneLinkDiscoveryProbeDll)' == ''">Microsoft.Internal.Bluetooth.Map.dll</PhoneLinkDiscoveryProbeDll>
+  </PropertyGroup>
+
+  <Target
+    Name="ReadCachedPhoneLinkInstallDir"
+    BeforeTargets="AutoDiscoverPhoneLinkInstallDir"
+    Condition="'$(RequiresPhoneLinkInternals)' == 'true' and ('$(PhoneLinkInstallDir)' == '' or !Exists('$(PhoneLinkInstallDir)\$(PhoneLinkDiscoveryProbeDll)'))">
+    <PropertyGroup>
+      <_PhoneLinkDiscoveryOutputFile>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)phone-link-install-dir.txt'))</_PhoneLinkDiscoveryOutputFile>
+    </PropertyGroup>
+
+    <ReadLinesFromFile File="$(_PhoneLinkDiscoveryOutputFile)" Condition="Exists('$(_PhoneLinkDiscoveryOutputFile)')">
+      <Output TaskParameter="Lines" ItemName="_CachedPhoneLinkInstallDirLines" />
+    </ReadLinesFromFile>
+
+    <PropertyGroup Condition="'@(_CachedPhoneLinkInstallDirLines)' != ''">
+      <_CachedPhoneLinkInstallDirText>@(_CachedPhoneLinkInstallDirLines, '')</_CachedPhoneLinkInstallDirText>
+      <PhoneLinkInstallDir>$([System.String]::Copy('$(_CachedPhoneLinkInstallDirText)').Trim())</PhoneLinkInstallDir>
+    </PropertyGroup>
+  </Target>
+
+  <Target
+    Name="AutoDiscoverPhoneLinkInstallDir"
+    BeforeTargets="EnsurePhoneLinkReferences;ResolveAssemblyReferences"
+    Condition="'$(RequiresPhoneLinkInternals)' == 'true' and ('$(PhoneLinkInstallDir)' == '' or !Exists('$(PhoneLinkInstallDir)\$(PhoneLinkDiscoveryProbeDll)'))">
+    <PropertyGroup>
+      <_PhoneLinkDiscoveryOutputFile>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(BaseIntermediateOutputPath)phone-link-install-dir.txt'))</_PhoneLinkDiscoveryOutputFile>
+      <_PhoneLinkDiscoveryTempFile>$(_PhoneLinkDiscoveryOutputFile).new</_PhoneLinkDiscoveryTempFile>
+      <_ResolvedPhoneLinkDiscoveryCommand Condition="'$(PhoneLinkDiscoveryCommand)' == ''">powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$path = (Get-AppxPackage '$(PhoneLinkDiscoveryPackageName)' | Sort-Object Version -Descending | Select-Object -First 1 -ExpandProperty InstallLocation); if ($path) { [System.IO.File]::WriteAllText('$(_PhoneLinkDiscoveryTempFile)', $path) }"</_ResolvedPhoneLinkDiscoveryCommand>
+      <_ResolvedPhoneLinkDiscoveryCommand Condition="'$(PhoneLinkDiscoveryCommand)' != ''">$(PhoneLinkDiscoveryCommand)</_ResolvedPhoneLinkDiscoveryCommand>
+    </PropertyGroup>
+
+    <Delete Files="$(_PhoneLinkDiscoveryTempFile)" Condition="Exists('$(_PhoneLinkDiscoveryTempFile)')" />
+
+    <Exec
+      Command="$(_ResolvedPhoneLinkDiscoveryCommand)"
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      IgnoreExitCode="true"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="Low" />
+
+    <ReadLinesFromFile File="$(_PhoneLinkDiscoveryTempFile)" Condition="Exists('$(_PhoneLinkDiscoveryTempFile)')">
+      <Output TaskParameter="Lines" ItemName="_DiscoveredPhoneLinkInstallDirLines" />
+    </ReadLinesFromFile>
+
+    <PropertyGroup Condition="'@(_DiscoveredPhoneLinkInstallDirLines)' != ''">
+      <_DiscoveredPhoneLinkInstallDirText>@(_DiscoveredPhoneLinkInstallDirLines, '')</_DiscoveredPhoneLinkInstallDirText>
+      <PhoneLinkInstallDir>$([System.String]::Copy('$(_DiscoveredPhoneLinkInstallDirText)').Trim())</PhoneLinkInstallDir>
+    </PropertyGroup>
+
+    <Copy
+      SourceFiles="$(_PhoneLinkDiscoveryTempFile)"
+      DestinationFiles="$(_PhoneLinkDiscoveryOutputFile)"
+      Condition="'$(PhoneLinkInstallDir)' != '' and Exists('$(PhoneLinkInstallDir)\$(PhoneLinkDiscoveryProbeDll)') and Exists('$(_PhoneLinkDiscoveryTempFile)')" />
+
+    <Message
+      Text="Auto-discovered Phone Link internals at '$(PhoneLinkInstallDir)'."
+      Importance="Low"
+      Condition="'$(PhoneLinkInstallDir)' != '' and Exists('$(PhoneLinkInstallDir)\$(PhoneLinkDiscoveryProbeDll)')" />
+  </Target>
+
+  <Target
+    Name="AddPhoneLinkInternalReferences"
+    BeforeTargets="ResolveAssemblyReferences"
+    DependsOnTargets="AutoDiscoverPhoneLinkInstallDir"
+    Condition="'$(RequiresPhoneLinkInternals)' == 'true' and Exists('$(PhoneLinkInstallDir)\$(PhoneLinkDiscoveryProbeDll)')">
+    <ItemGroup>
+      <Reference Include="Microsoft.Internal.Bluetooth.Map">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Bluetooth.Map.dll</HintPath>
+      </Reference>
+      <Reference Include="Microsoft.Internal.Bluetooth.Map.BMessage">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Bluetooth.Map.BMessage.dll</HintPath>
+      </Reference>
+      <Reference Include="Microsoft.Internal.Bluetooth.Pal">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Bluetooth.Pal.dll</HintPath>
+      </Reference>
+      <Reference Include="Microsoft.Internal.Bluetooth.Profiles">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Bluetooth.Profiles.dll</HintPath>
+      </Reference>
+      <Reference Include="Microsoft.Internal.Bluetooth.Pbap">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Bluetooth.Pbap.dll</HintPath>
+      </Reference>
+      <Reference Include="Microsoft.Internal.Diagnostics">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Diagnostics.dll</HintPath>
+      </Reference>
+      <Reference Include="Microsoft.Internal.Obex">
+        <HintPath>$(PhoneLinkInstallDir)\Microsoft.Internal.Obex.dll</HintPath>
+      </Reference>
+      <Reference Include="Hali4831.MixERP.Net.VCards">
+        <HintPath>$(PhoneLinkInstallDir)\Hali4831.MixERP.Net.VCards.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+  </Target>
+
+  <Target
+    Name="EnsurePhoneLinkReferences"
+    BeforeTargets="ResolveAssemblyReferences"
+    DependsOnTargets="AutoDiscoverPhoneLinkInstallDir;AddPhoneLinkInternalReferences"
+    Condition="'$(RequiresPhoneLinkInternals)' == 'true' and !Exists('$(PhoneLinkInstallDir)\$(PhoneLinkDiscoveryProbeDll)')">
+    <Error Text="Phone Link internals were not found. Adit tried to auto-discover the installed Phone Link package first. If that failed, set the MSBuild property PhoneLinkInstallDir to the installed package location, for example: powershell -Command &quot;(Get-AppxPackage Microsoft.YourPhone).InstallLocation&quot;." />
+  </Target>
+</Project>

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "adit": {
+      "command": "${ADIT_NODE_COMMAND:-node}",
+      "args": [
+        "./sdk/mcp-server/server.js"
+      ],
+      "env": {
+        "ADIT_URL": "${ADIT_URL:-http://127.0.0.1:5037}"
+      }
+    }
+  }
+}

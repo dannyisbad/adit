@@ -1,0 +1,21 @@
+{
+  "name": "adit-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for the local Adit daemon.",
+  "type": "module",
+  "bin": {
+    "adit-mcp": "./server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "server.js",
+    "lib",
+    "README.md"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "zod": "^3.25.0"
+  }
+}
