@@ -48,11 +48,12 @@ public sealed class DaemonEventHub
     public DaemonEventSubscription Subscribe(CancellationToken cancellationToken)
     {
         var id = Guid.NewGuid();
-        var channel = Channel.CreateUnbounded<DaemonEventRecord>(
-            new UnboundedChannelOptions
+        var channel = Channel.CreateBounded<DaemonEventRecord>(
+            new BoundedChannelOptions(recentEventLimit)
             {
                 SingleReader = true,
-                SingleWriter = false
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.DropOldest
             });
         subscribers[id] = channel;
 
