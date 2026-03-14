@@ -61,9 +61,9 @@ public sealed class DaemonOptions
         RepoRoot,
         "training",
         "models",
-        "thread-chooser-fused-headline.pt");
+        "thread-chooser-learned-optin-qwen3-1.7b.pt");
 
-    public string ThreadChooserModelName { get; init; } = "Qwen/Qwen3-0.6B-Base";
+    public string ThreadChooserModelName { get; init; } = "Qwen/Qwen3-1.7B-Base";
 
     public int ThreadChooserPort { get; init; } = 5048;
 
@@ -113,9 +113,9 @@ public sealed class DaemonOptions
                     RepoRoot,
                     "training",
                     "models",
-                    "thread-chooser-fused-headline.pt"),
+                    "thread-chooser-learned-optin-qwen3-1.7b.pt"),
             ThreadChooserModelName = Environment.GetEnvironmentVariable("ADIT_THREAD_CHOOSER_MODEL")
-                ?? "Qwen/Qwen3-0.6B-Base",
+                ?? "Qwen/Qwen3-1.7B-Base",
             ThreadChooserPort = ParseInt("ADIT_THREAD_CHOOSER_PORT", 5048),
             ThreadChooserMaxCandidates = ParseInt("ADIT_THREAD_CHOOSER_MAX_CANDIDATES", 6),
             ThreadChooserHistoryTurns = ParseInt("ADIT_THREAD_CHOOSER_HISTORY_TURNS", 8)
@@ -211,7 +211,7 @@ public sealed class DaemonOptions
             }
 
             var scriptPath = Path.Combine(current.FullName, "training", "thread_scoring_sidecar.py");
-            var checkpointPath = Path.Combine(current.FullName, "training", "models", "thread-chooser-fused-headline.pt");
+            var checkpointPath = Path.Combine(current.FullName, "training", "models", "thread-chooser-learned-optin-qwen3-1.7b.pt");
             if (File.Exists(scriptPath) && File.Exists(checkpointPath))
             {
                 return current.FullName;

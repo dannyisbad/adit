@@ -26,7 +26,7 @@ public sealed class DaemonOptionsTests
                 Path.Combine(repoRoot, "training", "thread_scoring_sidecar.py"),
                 options.ThreadChooserScriptPath);
             Assert.Equal(
-                Path.Combine(repoRoot, "training", "models", "thread-chooser-fused-headline.pt"),
+                Path.Combine(repoRoot, "training", "models", "thread-chooser-learned-optin-qwen3-1.7b.pt"),
                 options.ThreadChooserCheckpointPath);
             Assert.True(File.Exists(options.ThreadChooserScriptPath));
             Assert.True(File.Exists(options.ThreadChooserCheckpointPath));

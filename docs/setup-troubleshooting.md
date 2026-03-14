@@ -68,6 +68,8 @@ Invoke-RestMethod -Method Post http://127.0.0.1:5037/v1/notifications/check
 Invoke-RestMethod http://127.0.0.1:5037/v1/thread-chooser/status
 ```
 
+`/v1/thread-chooser/status` always returns a snapshot, but it will report `disabled` unless `ADIT_ENABLE_LEARNED_THREAD_CHOOSER=true` and the sidecar assets are present.
+
 ## Common Failures
 
 ### Build fails with "Phone Link internals were not found"

@@ -135,7 +135,7 @@ public sealed class DaemonApiTests : IClassFixture<DaemonApiTestFactory>
 
         Assert.False(payload.GetProperty("enabled").GetBoolean());
         Assert.Equal("disabled", payload.GetProperty("status").GetString());
-        Assert.Equal("Qwen/Qwen3-0.6B-Base", payload.GetProperty("configuredModelName").GetString());
+        Assert.Equal("Qwen/Qwen3-1.7B-Base", payload.GetProperty("configuredModelName").GetString());
         Assert.Equal(5048, payload.GetProperty("port").GetInt32());
     }
 

@@ -162,7 +162,7 @@ All SDKs wrap the local daemon API. None speak Bluetooth directly.
 | `ADIT_AUTH_TOKEN` | unset | Optional bearer token for SDKs, CLI tools, MCP, and other non-browser API clients |
 | `ADIT_AUTO_EVICT_PHONE_LINK` | `true` (post-bootstrap) | Evict Phone Link to claim MAP/PBAP |
 | `ADIT_ENCRYPT_DB_AT_REST` | `true` | Windows EFS encryption for SQLite cache |
-| `ADIT_ENABLE_LEARNED_THREAD_CHOOSER` | `false` | Experimental ML thread routing. Weights (`.pt`) are stored with [Git LFS](https://git-lfs.com) — run `git lfs pull` after cloning. |
+| `ADIT_ENABLE_LEARNED_THREAD_CHOOSER` | `false` | Experimental ML thread routing. Weights are stored with [Git LFS](https://git-lfs.com) — run `git lfs pull` after cloning. |
 | `ADIT_ENABLE_EXPERIMENTAL_PAIRING_API` | `false` | Native pairing lab endpoints |
 
 ## Docs
@@ -170,7 +170,7 @@ All SDKs wrap the local daemon API. None speak Bluetooth directly.
 - [API reference](docs/api.md)
 - [Architecture](docs/architecture.md)
 - [Setup troubleshooting](docs/setup-troubleshooting.md)
-- [Thread model data](docs/thread-model-data.md)
+- [Thread chooser training notes](training/README.md)
 
 ## License
 

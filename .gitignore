@@ -18,6 +18,10 @@ training/datasets/*.json
 training/reports/*.json
 training/models/*.pt
 !training/models/thread-chooser-learned-optin-qwen3-1.7b.pt
-docs/thread*.md
 Assets/
 web/dist/
+*.tsbuildinfo
+.venv-threadmodel/
+sdk/python/build/
+sdk/python/dist/
+sdk/python/*.egg-info/
