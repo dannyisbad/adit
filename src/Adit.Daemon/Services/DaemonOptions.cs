@@ -36,6 +36,10 @@ public sealed class DaemonOptions
 
     public bool EnableExperimentalPairingApi { get; init; } = false;
 
+    public string? AuthToken { get; init; }
+
+    public bool HasAuthToken => !string.IsNullOrWhiteSpace(AuthToken);
+
     public int EventBufferSize { get; init; } = 200;
 
     public bool DisableBackgroundSync { get; init; } = false;
@@ -89,6 +93,7 @@ public sealed class DaemonOptions
             AutoEvictPhoneLink = ParseBool("ADIT_AUTO_EVICT_PHONE_LINK", true),
             EnableAncsByDefault = ParseBool("ADIT_ENABLE_ANCS_BY_DEFAULT", false),
             EnableExperimentalPairingApi = ParseBool("ADIT_ENABLE_EXPERIMENTAL_PAIRING_API", false),
+            AuthToken = NormalizeOptionalValue(Environment.GetEnvironmentVariable("ADIT_AUTH_TOKEN")),
             EventBufferSize = ParseInt("ADIT_EVENT_BUFFER_SIZE", 200),
             DisableBackgroundSync = ParseBool("ADIT_DISABLE_BACKGROUND_SYNC", false),
             EnableLearnedThreadChooser = ParseBool("ADIT_ENABLE_LEARNED_THREAD_CHOOSER", false),
@@ -129,6 +134,11 @@ public sealed class DaemonOptions
         return bool.TryParse(Environment.GetEnvironmentVariable(name), out var value)
             ? value
             : fallback;
+    }
+
+    private static string? NormalizeOptionalValue(string? raw)
+    {
+        return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim();
     }
 
     private static string NormalizeListenUrl(string? raw)

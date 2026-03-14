@@ -17,6 +17,7 @@ Treat requests like "set this up", "wire this into Claude", "fix the Adit MCP", 
 5. Use `steps`, `actions`, and `integrations` from the setup guide before suggesting manual edits.
 6. Prefer project-scoped setup in this repo:
    - `.mcp.json` should point Claude Code at `./sdk/mcp-server/server.js`
+   - if the daemon is using `ADIT_AUTH_TOKEN`, `.mcp.json` should pass it through in the MCP server env
    - `.claude/agents/adit-operator.md` should exist so Claude has an Adit-specific operator
 7. If setup is blocked on a real-world prerequisite like Link to Windows pairing, the phone being nearby/unlocked, or a daemon build/runtime failure, report the blocker clearly instead of inventing a workaround.
 

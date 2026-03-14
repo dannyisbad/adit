@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Adit.Core.Models;
@@ -48,6 +49,28 @@ var app = builder.Build();
 app.UseWebSockets();
 
 var uiPath = NormalizeHostedPath(Path.Combine(AppContext.BaseDirectory, "wwwroot"));
+var hasUi = Directory.Exists(uiPath);
+
+app.Use(async (context, next) =>
+{
+    if (RequiresTrustedBrowserOrigin(context) && IsBrowserRequest(context) && !IsTrustedBrowserRequest(context, daemonOptions.ListenUri))
+    {
+        await WriteErrorResponseAsync(context, StatusCodes.Status403Forbidden, "Untrusted browser origin.");
+        return;
+    }
+
+    if (RequiresDaemonAccessToken(context, hasUi)
+        && daemonOptions.HasAuthToken
+        && !HasValidDaemonAccessToken(context, daemonOptions.AuthToken!))
+    {
+        context.Response.Headers.WWWAuthenticate = "Bearer realm=\"adit\"";
+        await WriteErrorResponseAsync(context, StatusCodes.Status401Unauthorized, "Bearer token required.");
+        return;
+    }
+
+    await next();
+});
+
 if (Directory.Exists(uiPath))
 {
     app.UseStaticFiles(new StaticFileOptions
@@ -55,8 +78,6 @@ if (Directory.Exists(uiPath))
         FileProvider = new PhysicalFileProvider(uiPath)
     });
 }
-
-var hasUi = Directory.Exists(uiPath);
 
 var publicEndpoints = new List<string>
 {
@@ -115,6 +136,7 @@ if (!hasUi)
                     packageIdentity = PackageIdentitySnapshot.Capture(),
                     runtime,
                     setup = CapabilitySnapshotBuilder.BuildSetup(runtime, daemonOptions),
+                    security = BuildSecurityDescriptor(daemonOptions, hasUi),
                     webSocketUrl = BuildWebSocketUrl(daemonOptions.ListenUrl),
                     setupGuide = "/v1/setup/guide",
                     endpoints = publicEndpoints
@@ -138,6 +160,7 @@ app.MapGet(
                 packageIdentity = PackageIdentitySnapshot.Capture(),
                 runtime,
                 setup = CapabilitySnapshotBuilder.BuildSetup(runtime, daemonOptions),
+                security = BuildSecurityDescriptor(daemonOptions, hasUi),
                 webSocketUrl = BuildWebSocketUrl(daemonOptions.ListenUrl),
                 setupGuide = "/v1/setup/guide",
                 endpoints = publicEndpoints
@@ -172,6 +195,7 @@ app.MapGet(
                 webSocketUrl = BuildWebSocketUrl(daemonOptions.ListenUrl),
                 runtime,
                 setup,
+                security = BuildSecurityDescriptor(daemonOptions, hasUi),
                 capabilities,
                 doctor,
                 setupGuide,
@@ -394,18 +418,6 @@ app.MapGet(
                 new
                 {
                     error = "WebSocket upgrade required."
-                },
-                cancellationToken);
-            return;
-        }
-
-        if (!IsTrustedWebSocketOrigin(context, daemonOptions.ListenUri))
-        {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsJsonAsync(
-                new
-                {
-                    error = "Untrusted WebSocket origin."
                 },
                 cancellationToken);
             return;
@@ -1010,14 +1022,74 @@ static string BuildWebSocketUrl(string listenUrl)
     return builder.Uri.ToString();
 }
 
-static bool IsTrustedWebSocketOrigin(HttpContext context, Uri listenUri)
+static object BuildSecurityDescriptor(DaemonOptions daemonOptions, bool hasUi)
 {
-    if (!context.Request.Headers.TryGetValue("Origin", out var originValues) || originValues.Count == 0)
+    return new
+    {
+        bind = "loopback_only",
+        bearerTokenEnabled = daemonOptions.HasAuthToken,
+        bearerTokenHeader = daemonOptions.HasAuthToken ? "Authorization: Bearer <token>" : null,
+        eventStreamTokenQuery = daemonOptions.HasAuthToken ? "access_token" : null,
+        trustedBrowserOriginPolicy = "same_origin_required_for_ws_events_and_browser_writes",
+        trustedBrowserAuthPolicy = daemonOptions.HasAuthToken
+            ? "all_api_clients_require_a_bearer_token_when_enabled"
+            : "not_required",
+        builtInUiTokenAware = hasUi
+    };
+}
+
+static bool RequiresDaemonAccessToken(HttpContext context, bool hasUi)
+{
+    if (StartsWithPathSegment(context.Request.Path, "/v1"))
     {
         return true;
     }
 
-    if (originValues.Count != 1 || !Uri.TryCreate(originValues[0], UriKind.Absolute, out var origin))
+    return !hasUi && MatchesPath(context.Request.Path, "/");
+}
+
+static bool RequiresTrustedBrowserOrigin(HttpContext context)
+{
+    if (MatchesPath(context.Request.Path, "/v1/ws") || MatchesPath(context.Request.Path, "/v1/events"))
+    {
+        return true;
+    }
+
+    return HttpMethods.IsPost(context.Request.Method)
+        || HttpMethods.IsPut(context.Request.Method)
+        || HttpMethods.IsPatch(context.Request.Method)
+        || HttpMethods.IsDelete(context.Request.Method);
+}
+
+static bool IsBrowserRequest(HttpContext context)
+{
+    return context.Request.Headers.ContainsKey("Origin")
+        || context.Request.Headers.ContainsKey("Sec-Fetch-Site");
+}
+
+static bool IsTrustedBrowserRequest(HttpContext context, Uri listenUri)
+{
+    if (HasOriginHeader(context))
+    {
+        return IsTrustedRequestOrigin(context, listenUri);
+    }
+
+    if (!context.Request.Headers.TryGetValue("Sec-Fetch-Site", out var fetchSiteValues) || fetchSiteValues.Count != 1)
+    {
+        return false;
+    }
+
+    return string.Equals(fetchSiteValues[0], "same-origin", StringComparison.OrdinalIgnoreCase);
+}
+
+static bool HasOriginHeader(HttpContext context)
+{
+    return context.Request.Headers.TryGetValue("Origin", out var originValues) && originValues.Count > 0;
+}
+
+static bool IsTrustedRequestOrigin(HttpContext context, Uri listenUri)
+{
+    if (!TryGetRequestOrigin(context, out var origin))
     {
         return false;
     }
@@ -1030,10 +1102,18 @@ static bool IsTrustedWebSocketOrigin(HttpContext context, Uri listenUri)
         return false;
     }
 
-    return IsLoopbackHost(origin.Host) && origin.Port == ResolveTrustedWebSocketOriginPort(context, listenUri);
+    return IsLoopbackHost(origin.Host) && origin.Port == ResolveTrustedRequestOriginPort(context, listenUri);
 }
 
-static int ResolveTrustedWebSocketOriginPort(HttpContext context, Uri listenUri)
+static bool TryGetRequestOrigin(HttpContext context, out Uri origin)
+{
+    origin = null!;
+    return context.Request.Headers.TryGetValue("Origin", out var originValues)
+        && originValues.Count == 1
+        && Uri.TryCreate(originValues[0], UriKind.Absolute, out origin);
+}
+
+static int ResolveTrustedRequestOriginPort(HttpContext context, Uri listenUri)
 {
     if (listenUri.Port != 0)
     {
@@ -1053,6 +1133,78 @@ static int ResolveTrustedWebSocketOriginPort(HttpContext context, Uri listenUri)
     return listenUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
         ? 443
         : 80;
+}
+
+static bool HasValidDaemonAccessToken(HttpContext context, string expectedToken)
+{
+    if (TryGetBearerToken(context, out var headerToken) && SecureEquals(headerToken, expectedToken))
+    {
+        return true;
+    }
+
+    if (AllowsQueryAccessToken(context.Request.Path)
+        && context.Request.Query.TryGetValue("access_token", out var queryTokens)
+        && queryTokens.Count == 1
+        && SecureEquals(queryTokens[0], expectedToken))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+static bool TryGetBearerToken(HttpContext context, out string token)
+{
+    token = string.Empty;
+    if (!context.Request.Headers.TryGetValue("Authorization", out var authValues) || authValues.Count != 1)
+    {
+        return false;
+    }
+
+    const string prefix = "Bearer ";
+    var header = authValues[0];
+    if (!header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    token = header[prefix.Length..].Trim();
+    return token.Length > 0;
+}
+
+static bool SecureEquals(string left, string right)
+{
+    var leftBytes = Encoding.UTF8.GetBytes(left);
+    var rightBytes = Encoding.UTF8.GetBytes(right);
+    return leftBytes.Length == rightBytes.Length && CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+}
+
+static bool AllowsQueryAccessToken(PathString path)
+{
+    return MatchesPath(path, "/v1/ws") || MatchesPath(path, "/v1/events");
+}
+
+static bool MatchesPath(PathString actualPath, string expectedPath)
+{
+    return string.Equals(actualPath.Value, expectedPath, StringComparison.OrdinalIgnoreCase);
+}
+
+static bool StartsWithPathSegment(PathString actualPath, string expectedSegment)
+{
+    var value = actualPath.Value ?? string.Empty;
+    return value.Equals(expectedSegment, StringComparison.OrdinalIgnoreCase)
+        || value.StartsWith($"{expectedSegment}/", StringComparison.OrdinalIgnoreCase);
+}
+
+static async Task WriteErrorResponseAsync(HttpContext context, int statusCode, string error)
+{
+    if (context.Response.HasStarted)
+    {
+        return;
+    }
+
+    context.Response.StatusCode = statusCode;
+    await context.Response.WriteAsJsonAsync(new { error });
 }
 
 static void ConfigureLoopbackBinding(KestrelServerOptions options, Uri listenUri)

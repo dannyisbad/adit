@@ -39,6 +39,11 @@ ADIT_URL=http://127.0.0.1:5037 npx adit-mcp
 ```
 
 If `ADIT_URL` is omitted, the server defaults to `http://127.0.0.1:5037`.
+If the daemon has bearer-token auth enabled, also set `ADIT_AUTH_TOKEN`.
+
+```bash
+ADIT_URL=http://127.0.0.1:5037 ADIT_AUTH_TOKEN=your-token npx adit-mcp
+```
 
 ## Manual Claude Code Setup In Another Repo
 
@@ -51,7 +56,8 @@ Project `.mcp.json`:
       "command": "node",
       "args": ["./sdk/mcp-server/server.js"],
       "env": {
-        "ADIT_URL": "http://127.0.0.1:5037"
+        "ADIT_URL": "http://127.0.0.1:5037",
+        "ADIT_AUTH_TOKEN": "your-token-if-enabled"
       }
     }
   }
@@ -61,7 +67,7 @@ Project `.mcp.json`:
 Or add the same server through the Claude Code CLI:
 
 ```bash
-claude mcp add-json adit --scope project '{"command":"node","args":["/absolute/path/to/repo/sdk/mcp-server/server.js"],"env":{"ADIT_URL":"http://127.0.0.1:5037"}}'
+claude mcp add-json adit --scope project '{"command":"node","args":["/absolute/path/to/repo/sdk/mcp-server/server.js"],"env":{"ADIT_URL":"http://127.0.0.1:5037","ADIT_AUTH_TOKEN":"your-token-if-enabled"}}'
 ```
 
 ## Recommended Flow

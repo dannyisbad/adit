@@ -61,6 +61,17 @@ public sealed class DaemonOptionsTests
             || (IPAddress.TryParse(options.ListenUri.Host, out var address) && IPAddress.IsLoopback(address)));
     }
 
+    [Fact]
+    public void FromEnvironment_AcceptsOptionalAuthToken()
+    {
+        using var token = new EnvironmentVariableScope("ADIT_AUTH_TOKEN", "  test-token  ");
+
+        var options = DaemonOptions.FromEnvironment();
+
+        Assert.True(options.HasAuthToken);
+        Assert.Equal("test-token", options.AuthToken);
+    }
+
     private static string FindRepoRoot()
     {
         var current = new DirectoryInfo(AppContext.BaseDirectory);

@@ -55,3 +55,14 @@ These routes exist only when `ADIT_ENABLE_EXPERIMENTAL_PAIRING_API=true`:
 - `GET /v1/pairing/candidates`
 - `POST /v1/pairing/pair`
 - `POST /v1/pairing/unpair`
+
+## Security
+
+- The daemon only accepts loopback bind URLs.
+- Browser-origin checks reject cross-site access to:
+  - `GET /v1/ws`
+- `GET /v1/events`
+- all state-changing browser requests (`POST`, `PUT`, `PATCH`, `DELETE`)
+- If `ADIT_AUTH_TOKEN` is set, API clients must send `Authorization: Bearer <token>`.
+- The hosted browser UI prompts for the token after a `401` response and stores it in browser local storage on that machine.
+- For websocket or SSE clients that cannot set headers during connection setup, the daemon also accepts `access_token` as a query parameter on `/v1/ws` and `/v1/events`.

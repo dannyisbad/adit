@@ -101,6 +101,14 @@ dotnet run --project src\Adit.Daemon -- serve
 The daemon binds to `http://127.0.0.1:5037` (localhost only). The frontend is
 served at the same address if `web/dist` was built.
 
+## Security Model
+
+- The daemon binds to loopback only by default. Remote exposure still requires an explicit external proxy or tunnel.
+- Browser-origin checks reject cross-site websocket/event-stream requests and cross-site browser writes to localhost.
+- If you set `ADIT_AUTH_TOKEN`, non-browser API clients must send `Authorization: Bearer <token>`.
+- The hosted browser UI prompts for the token on first `401` and stores it in browser local storage on that machine.
+- WebSocket clients can also authenticate with `?access_token=...` when a client library cannot set headers during the upgrade.
+
 ### Verify
 
 ```powershell
@@ -151,6 +159,7 @@ All SDKs wrap the local daemon API. None speak Bluetooth directly.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ADIT_URL` | `http://127.0.0.1:5037` | Daemon bind address (localhost only) |
+| `ADIT_AUTH_TOKEN` | unset | Optional bearer token for SDKs, CLI tools, MCP, and other non-browser API clients |
 | `ADIT_AUTO_EVICT_PHONE_LINK` | `true` (post-bootstrap) | Evict Phone Link to claim MAP/PBAP |
 | `ADIT_ENCRYPT_DB_AT_REST` | `true` | Windows EFS encryption for SQLite cache |
 | `ADIT_ENABLE_LEARNED_THREAD_CHOOSER` | `false` | Experimental ML thread routing. Weights (`.pt`) are stored with [Git LFS](https://git-lfs.com) — run `git lfs pull` after cloning. |

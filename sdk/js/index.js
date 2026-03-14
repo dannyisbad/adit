@@ -1,4 +1,5 @@
 const DEFAULT_BASE_URL = resolveDefaultBaseUrl();
+const DEFAULT_AUTH_TOKEN = resolveDefaultAuthToken();
 
 export class AditError extends Error {
   constructor(message, { status, body } = {}) {
@@ -13,6 +14,7 @@ export class AditClient {
   constructor(options = {}) {
     const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    this.authToken = normalizeOptionalString(options.authToken ?? DEFAULT_AUTH_TOKEN);
     this.fetchImpl = options.fetch ?? globalThis.fetch;
 
     if (typeof this.fetchImpl !== "function") {
@@ -129,6 +131,9 @@ export class AditClient {
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
     url.pathname = "/v1/ws";
     url.search = "";
+    if (this.authToken) {
+      url.searchParams.set("access_token", this.authToken);
+    }
     return url.toString();
   }
 
@@ -178,10 +183,17 @@ export class AditClient {
   async #request(method, path, { query, body } = {}) {
     const url = new URL(`${this.baseUrl}${path}`);
     appendQuery(url, query);
+    const headers = {};
+    if (body) {
+      headers["content-type"] = "application/json";
+    }
+    if (this.authToken) {
+      headers.authorization = `Bearer ${this.authToken}`;
+    }
 
     const response = await this.fetchImpl(url, {
       method,
-      headers: body ? { "content-type": "application/json" } : undefined,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       body: body ? JSON.stringify(body) : undefined
     });
 
@@ -264,4 +276,19 @@ function resolveDefaultBaseUrl() {
       ? process.env.ADIT_URL.trim()
       : "";
   return envValue || "http://127.0.0.1:5037";
+}
+
+function resolveDefaultAuthToken() {
+  const envValue =
+    typeof process === "object" &&
+    process !== null &&
+    process.env &&
+    typeof process.env.ADIT_AUTH_TOKEN === "string"
+      ? process.env.ADIT_AUTH_TOKEN.trim()
+      : "";
+  return envValue || "";
+}
+
+function normalizeOptionalString(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : "";
 }
