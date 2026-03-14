@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Net;
 using System.Security.Cryptography;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using Adit.Core.Models;
@@ -1105,9 +1106,9 @@ static bool IsTrustedRequestOrigin(HttpContext context, Uri listenUri)
     return IsLoopbackHost(origin.Host) && origin.Port == ResolveTrustedRequestOriginPort(context, listenUri);
 }
 
-static bool TryGetRequestOrigin(HttpContext context, out Uri origin)
+static bool TryGetRequestOrigin(HttpContext context, [NotNullWhen(true)] out Uri? origin)
 {
-    origin = null!;
+    origin = null;
     return context.Request.Headers.TryGetValue("Origin", out var originValues)
         && originValues.Count == 1
         && Uri.TryCreate(originValues[0], UriKind.Absolute, out origin);
@@ -1145,7 +1146,8 @@ static bool HasValidDaemonAccessToken(HttpContext context, string expectedToken)
     if (AllowsQueryAccessToken(context.Request.Path)
         && context.Request.Query.TryGetValue("access_token", out var queryTokens)
         && queryTokens.Count == 1
-        && SecureEquals(queryTokens[0], expectedToken))
+        && !string.IsNullOrEmpty(queryTokens[0])
+        && SecureEquals(queryTokens[0]!, expectedToken))
     {
         return true;
     }
@@ -1153,7 +1155,7 @@ static bool HasValidDaemonAccessToken(HttpContext context, string expectedToken)
     return false;
 }
 
-static bool TryGetBearerToken(HttpContext context, out string token)
+static bool TryGetBearerToken(HttpContext context, [NotNullWhen(true)] out string? token)
 {
     token = string.Empty;
     if (!context.Request.Headers.TryGetValue("Authorization", out var authValues) || authValues.Count != 1)
@@ -1163,7 +1165,7 @@ static bool TryGetBearerToken(HttpContext context, out string token)
 
     const string prefix = "Bearer ";
     var header = authValues[0];
-    if (!header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+    if (string.IsNullOrEmpty(header) || !header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
     {
         return false;
     }
