@@ -11,8 +11,8 @@ exposes a full HTTP API and WebSocket event stream.
 The API is stable and usable day-to-day. The React frontend is a WIP and may
 break. Notifications are beta.
 
-For the full story behind the project — reverse-engineering the protocols,
-building the transport layer, and everything in between — see the
+For the full story behind the project (reverse-engineering the protocols,
+building the transport layer, and everything in between), see the
 [writeup](https://mundy.sh/blog/adit).
 
 ## What works
@@ -171,7 +171,7 @@ All SDKs wrap the local daemon API. None speak Bluetooth directly.
 
 ## Contributing
 
-Contributions are welcome — bug reports, docs fixes, new SDK wrappers, protocol
+Contributions are welcome: bug reports, docs fixes, new SDK wrappers, protocol
 research, frontend work, you name it. No contribution is too small.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.

@@ -15,7 +15,7 @@ Then hit `GET /v1/setup/guide`. If `state` is `needs_bootstrap`, tell the user t
 ## Why It Works
 
 - **The daemon is the source of truth.** `GET /v1/setup/guide` returns structured steps with `status`, `blocking`, and `recommendedAction` fields. Follow them instead of inventing your own checklist.
-- **No config to hand-write.** `.mcp.json` wires the MCP server and `.claude/agents/adit-operator.md` provides the operator persona — both are checked in.
+- **No config to hand-write.** `.mcp.json` wires the MCP server and `.claude/agents/adit-operator.md` provides the operator persona. Both are checked in.
 - **The only human-required step is physical.** Link to Windows pairing needs the user's iPhone, Bluetooth, and tapping "accept" on permission prompts. Everything else is automatable.
 
 ## Key Endpoints for Agents
@@ -32,14 +32,14 @@ Then hit `GET /v1/setup/guide`. If `state` is `needs_bootstrap`, tell the user t
 
 Open the repo in Claude Code and approve the project `adit` MCP server. The checked-in surfaces handle the rest:
 
-- [`.mcp.json`](.mcp.json) — project-scoped MCP server pointing at `./sdk/mcp-server/server.js`
-- [`.claude/agents/adit-operator.md`](.claude/agents/adit-operator.md) — Adit operator subagent with setup-first workflow, safe send rules, and recovery guidance
+- [`.mcp.json`](.mcp.json): project-scoped MCP server pointing at `./sdk/mcp-server/server.js`
+- [`.claude/agents/adit-operator.md`](.claude/agents/adit-operator.md): Adit operator subagent with setup-first workflow, safe send rules, and recovery guidance
 
 Ask Claude to "set this up" and it will follow the daemon's setup guide automatically.
 
 ## Other Agent Surfaces
 
-- [`sdk/mcp-server`](sdk/mcp-server) — standalone MCP server for hosts that support MCP but not project files
-- [`sdk/claudebot-skill`](sdk/claudebot-skill) — canonical prompt instructions for safe setup and messaging outside Claude Code
-- [`sdk/js`](sdk/js) / [`sdk/python`](sdk/python) — thin client wrappers over the daemon HTTP API
-- [`sdks/README.md`](sdks/README.md) — agent-facing index of all SDK surfaces
+- [`sdk/mcp-server`](sdk/mcp-server): standalone MCP server for hosts that support MCP but not project files
+- [`sdk/claudebot-skill`](sdk/claudebot-skill): canonical prompt instructions for safe setup and messaging outside Claude Code
+- [`sdk/js`](sdk/js) / [`sdk/python`](sdk/python): thin client wrappers over the daemon HTTP API
+- [`sdks/README.md`](sdks/README.md): agent-facing index of all SDK surfaces

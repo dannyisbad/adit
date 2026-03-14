@@ -1,7 +1,7 @@
 # Contributing to adit
 
 Thanks for your interest. Adit is a solo project that recently went public, and
-contributions are welcome — whether that's a bug report, a docs fix, a new SDK
+contributions are welcome, whether that's a bug report, a docs fix, a new SDK
 wrapper, or a protocol-level improvement.
 
 ## Ways to contribute
@@ -9,17 +9,17 @@ wrapper, or a protocol-level improvement.
 **No contribution is too small.** Typo fixes, clarified docs, and better error
 messages are all valued.
 
-- **Bug reports** — open an issue. Include your Windows version, iPhone model,
+- **Bug reports:** open an issue. Include your Windows version, iPhone model,
   and the output of `GET /v1/doctor` if possible.
-- **Feature ideas** — open an issue to discuss before writing code. This saves
+- **Feature ideas:** open an issue to discuss before writing code. This saves
   everyone time if the idea conflicts with the project's scope.
-- **Pull requests** — fork, branch, fix, PR. Small focused PRs merge faster
+- **Pull requests:** fork, branch, fix, PR. Small focused PRs merge faster
   than large ones.
-- **Docs improvements** — the setup flow especially could always use more
+- **Docs improvements:** the setup flow especially could always use more
   clarity. If you hit a wall and figured it out, write it down.
-- **SDK contributions** — new language SDKs, improved ergonomics for existing
+- **SDK contributions:** new language SDKs, improved ergonomics for existing
   ones, better examples.
-- **Protocol research** — if you've been poking at MAP, PBAP, or ANCS and found
+- **Protocol research:** if you've been poking at MAP, PBAP, or ANCS and found
   something interesting, `src/Adit.Probe` is the place for experiments.
 
 ## Setting up for development
@@ -64,7 +64,7 @@ available. That's expected.
    If your change touches the frontend, make sure `npm run build` succeeds in
    `web/`.
 
-5. **Match the existing style.** No need to memorize a style guide — just look
+5. **Match the existing style.** No need to memorize a style guide, just look
    at the surrounding code and follow the same patterns. The codebase uses:
    - C#: standard .NET conventions
    - TypeScript/React: functional components, Tailwind for styling
@@ -92,15 +92,15 @@ design rules.
 
 ## Where help is especially welcome
 
-- **Setup experience** — the pairing flow is the hardest part for new users.
+- **Setup experience:** the pairing flow is the hardest part for new users.
   Better docs, better error messages, better recovery paths.
-- **Frontend** — the React UI is early-stage. If you know React + Tailwind,
+- **Frontend:** the React UI is early-stage. If you know React + Tailwind,
   there's a lot of room to improve things.
-- **New SDKs** — Ruby, Go, Rust, Swift — if you want to wrap the REST API in
+- **New SDKs:** Ruby, Go, Rust, Swift. If you want to wrap the REST API in
   your language of choice, go for it.
-- **ANCS improvements** — notification streaming is beta. More testing across
+- **ANCS improvements:** notification streaming is beta. More testing across
   different iPhone models and iOS versions would help a lot.
-- **Tests** — more coverage is always good, especially for edge cases in MAP
+- **Tests:** more coverage is always good, especially for edge cases in MAP
   message parsing and contact number normalization.
 
 ## Code of conduct
@@ -110,6 +110,6 @@ Be respectful. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 ## Questions?
 
 If you're not sure about something, open an issue and ask. There are no stupid
-questions — this project touches obscure Bluetooth protocols that most people
+questions. This project touches obscure Bluetooth protocols that most people
 have never heard of, and the setup has real rough edges. Asking questions helps
 improve the docs for everyone.
