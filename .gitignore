@@ -5,6 +5,11 @@ bin
 !.gitignore
 !.gitattributes
 !.mcp.json
+!.github/
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/ci.yml
 !.claude/
 !.claude/agents/
 !.claude/agents/**

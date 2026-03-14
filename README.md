@@ -11,6 +11,10 @@ exposes a full HTTP API and WebSocket event stream.
 The API is stable and usable day-to-day. The React frontend is a WIP and may
 break. Notifications are beta.
 
+For the full story behind the project — reverse-engineering the protocols,
+building the transport layer, and everything in between — see the
+[writeup](https://mundy.sh/blog/adit).
+
 ## What works
 
 - SMS/iMessage send and receive via MAP, with live MNS push events
@@ -165,12 +169,27 @@ All SDKs wrap the local daemon API. None speak Bluetooth directly.
 | `ADIT_ENABLE_LEARNED_THREAD_CHOOSER` | `false` | Experimental ML thread routing. Weights are stored with [Git LFS](https://git-lfs.com) — run `git lfs pull` after cloning. |
 | `ADIT_ENABLE_EXPERIMENTAL_PAIRING_API` | `false` | Native pairing lab endpoints |
 
+## Contributing
+
+Contributions are welcome — bug reports, docs fixes, new SDK wrappers, protocol
+research, frontend work, you name it. No contribution is too small.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
+
+If you're not sure where to start, the [issue tracker](../../issues) has
+questions and feature requests that could use help, and the
+[contributing guide](CONTRIBUTING.md#where-help-is-especially-welcome) lists
+areas where contributions would have the most impact.
+
 ## Docs
 
 - [API reference](docs/api.md)
 - [Architecture](docs/architecture.md)
 - [Setup troubleshooting](docs/setup-troubleshooting.md)
 - [Thread chooser training notes](training/README.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
 
 ## License
 
